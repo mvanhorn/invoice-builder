@@ -3,5 +3,6 @@ export enum Language {
   en = 'en',
   fr = 'fr',
   de = 'de',
-  pt = 'pt'
+  pt = 'pt',
+  cs = 'cs'
 }

@@ -1,3 +1,6 @@
+// @vitest-environment jsdom
+// The renderer Vite config does not set a Vitest environment, so this file
+// otherwise runs in Node where renderHook cannot see document.
 import { describe, it, expect } from 'vitest';
 import { Language } from '@invoice-builder/contracts';
 import { renderHook } from '@testing-library/react';
@@ -52,5 +55,43 @@ describe('usePdfTexts', () => {
   it('works without any data argument', () => {
     const { result } = renderHook(() => usePdfTexts(), { wrapper });
     expect(result.current.billTo).toBeTruthy();
+  });
+
+  it('returns supplied Czech invoice labels while the UI language stays English', async () => {
+    const previousLanguage = i18n.language;
+    await i18n.changeLanguage(Language.en);
+
+    try {
+      expect(i18n.language).toBe(Language.en);
+
+      const { result } = renderHook(() => usePdfTexts({ labelUpperCase: false, language: Language.cs }), { wrapper });
+
+      expect(result.current.billTo).toBe('Odběratel');
+      expect(result.current.invoiceNo).toBe('Faktura č.');
+      expect(result.current.subTotalLabel).toBe('Mezisoučet');
+      expect(result.current.totalLabel).toBe('Celkem');
+      expect(result.current.balanceDueLabel).toBe('Zůstatek k úhradě');
+    } finally {
+      await i18n.changeLanguage(previousLanguage);
+    }
+  });
+
+  it('uppercases Czech invoice labels with diacritics while the UI language stays English', async () => {
+    const previousLanguage = i18n.language;
+    await i18n.changeLanguage(Language.en);
+
+    try {
+      expect(i18n.language).toBe(Language.en);
+
+      const { result } = renderHook(() => usePdfTexts({ labelUpperCase: true, language: Language.cs }), { wrapper });
+
+      expect(result.current.billTo).toBe('ODBĚRATEL');
+      expect(result.current.invoiceNo).toBe('FAKTURA Č.');
+      expect(result.current.subTotalLabel).toBe('MEZISOUČET');
+      expect(result.current.balanceDueLabel).toBe('ZŮSTATEK K ÚHRADĚ');
+      expect(result.current.authorisedSignatoryLabel).toBe('OPRÁVNĚNÝ SIGNATÁŘ');
+    } finally {
+      await i18n.changeLanguage(previousLanguage);
+    }
   });
 });
